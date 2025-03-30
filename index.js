@@ -1,31 +1,46 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const cors = require('cors');
+// 🌍 환경변수 불러오기
+require("dotenv").config();
 
+// 📦 기본 세팅
+const express = require("express");
+const cors = require("cors");
+const http = require("http");
+const socketIO = require("socket.io");
+
+// 📡 서버 구성
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
+const io = socketIO(server, {
   cors: {
-    origin: '*',
-  }
+    origin: "*", // 필요한 경우 도메인 주소로 변경 가능
+    methods: ["GET", "POST"],
+  },
 });
 
+// 🌐 미들웨어 설정
 app.use(cors());
 
-io.on('connection', (socket) => {
-  console.log(`🔌 New user connected: ${socket.id}`);
+// 🧪 기본 라우트
+app.get("/", (req, res) => {
+  res.send("Server is running!");
+});
 
-  socket.on('chat message', ({ user, msg }) => {
-    io.emit('chat message', { user, msg });
+// 🔌 소켓 통신
+io.on("connection", (socket) => {
+  console.log("✅ A user connected");
+
+  // 메시지 수신 및 브로드캐스트
+  socket.on("chat message", ({ user, msg, time }) => {
+    console.log("📨 Message received:", user, msg, time);
+    io.emit("chat message", { user, msg, time }); // 전체 클라이언트에 전송
   });
 
-  socket.on('disconnect', () => {
-    console.log(`❌ User disconnected: ${socket.id}`);
+  socket.on("disconnect", () => {
+    console.log("❌ A user disconnected");
   });
 });
 
-// ✅ 배포 환경에서는 process.env.PORT 사용
+// 🚀 포트 설정
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
